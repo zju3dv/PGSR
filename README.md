@@ -13,11 +13,15 @@
 
 ## Quantitative Results
 ![demo_vid](assets/pgsr_dtu.jpg)
-![demo_vid](assets/pgsr_tnt.jpg)
+<div align="center">
+<img src=assets/pgsr_tnt.jpg width=60%/>
+</div>
 
 ## Qualitative Results
 ![demo_vid](assets/pgsr_all_dtu.png)
-![demo_vid](assets/pgsr_more_results.png)
+<div align="center">
+<img src=assets/pgsr_more_results.png width=90%/>
+</div>
 
 ## Brewing🍺, code coming soon.
 ## Citation
