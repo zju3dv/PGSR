@@ -27,7 +27,7 @@ If you find this code useful for your research, please use the following BibTeX 
 ```bibtex
 @article{chen2024pgsr,
   title={PGSR: Planar-based Gaussian Splatting for Efficient and High-Fidelity Surface Reconstruction},
-  author={Danpeng Chen, Hai Li, Weicai Ye, Yifan Wang, Weijian Xie, Shangjin Zhai, Nan Wang, Haomin Liu, Hujun Bao, Guofeng Zhang},
+  author={Danpeng Chen and Hai Li and Weicai Ye and Yifan Wang and Weijian Xie and Shangjin Zhai and Nan Wang and Haomin Liu and Hujun Bao and Guofeng Zhang},
     booktitle={arxiv preprint arxiv:2406.06521}, 
     year={2024}
 }
