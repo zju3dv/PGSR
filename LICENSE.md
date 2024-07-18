@@ -2,7 +2,6 @@
 // Copyright 2023-2024 3D Vision Group at the State Key Lab of CAD&CG,  
 // Zhejiang University. All Rights Reserved. 
 // 
-// For more information see <https://github.com/zju3dv/MVN-AFM> 
 // If you use this software, please cite the corresponding publications   
 // listed on the above website. 
 // 
