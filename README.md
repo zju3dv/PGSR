@@ -8,6 +8,24 @@ We present a Planar-based Gaussian Splatting Reconstruction representation for e
 ## Updates
 - [2024.07.18]: We fine-tuned the hyperparameters based on the original paper. The Chamfer Distance on the DTU dataset decreased to 0.47.
 
+The Chamfer Distance↓ on the DTU dataset
+|     | 24| 37| 40| 55| 63| 65| 69| 83| 97|105|106|110|114|118|122|Mean|Time|
+|---  |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+|PGSR(Paper)|0.34|0.58|0.29|0.29|0.78|0.58|0.54|1.01|0.73|0.51|0.49|0.69|0.31|0.37|0.38|0.53|0.6h|
+|PGSR(Code)|0.33|0.51|0.29|0.28|0.75|0.53|0.46|0.92|0.62|0.48|0.45|0.55|0.29|0.33|0.31|0.47|0.5h|
+
+The F1 Score↑ on the TnT dataset
+||PGSR(Paper)|PGSR(Code)
+|-|-|-|
+|Barn|0.66|0.65
+|Caterpillar|0.41|0.44
+|Courthouse|0.21|0.20
+|Ignatius|0.80|0.81
+|Meetingroom|0.29|0.32
+|Truck|0.60|0.66
+|Mean|0.50|0.51
+|Time|1.2h|45m
+
 ## Installation
 
 The repository contains submodules, thus please check it out with 
