@@ -148,7 +148,7 @@ def dtu_to_json(args):
         # read pose
         camera_param = dict(np.load(os.path.join(scene_path, 'cameras_sphere.npz')))
         images_lis = sorted(glob(os.path.join(scene_path, 'image/*.png')))
-        w, h = Image.open(os.path.join(scene_path, 'image', images_lis[0])).size
+        w, h = Image.open(images_lis[0]).size
         pinhole_dict = {}
         for idx, image in enumerate(images_lis):
             image = os.path.basename(image)
