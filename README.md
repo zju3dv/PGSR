@@ -121,7 +121,6 @@ python scripts/preprocess/convert.py --data_path your_data_path
 
 #### Some Suggestions:
 - Adjust the threshold for selecting the nearest frame in ModelParams based on the dataset;
-- Adjust the max depth and voxel size based on the dataset;
 - -r n: Downsample the images by a factor of n to accelerate the training speed;
 - --max_abs_split_points 0: For weakly textured scenes, to prevent overfitting in areas with weak textures, we recommend disabling this splitting strategy by setting it to 0;
 - --opacity_cull_threshold 0.05: To reduce the number of Gaussian point clouds in a simple way, you can set this threshold.
