@@ -32,76 +32,17 @@ from scene.app_model import AppModel
 import trimesh, copy
 from collections import deque
 
-def find_largest_connected_component(mesh):
-    # 获取顶点和面数据
-    faces = mesh.faces
-    vertices = mesh.vertices
-
-    # 创建邻接表
-    adjacency_list = [[] for _ in range(len(vertices))]
-    for face in faces:
-        for i in range(3):
-            adjacency_list[face[i]].append(face[(i + 1) % 3])
-            adjacency_list[face[i]].append(face[(i + 2) % 3])
-
-    # 标记访问过的顶点
-    visited = np.zeros(len(vertices), dtype=bool)
-
-    def bfs(start_vertex):
-        queue = deque([start_vertex])
-        visited[start_vertex] = True
-        component = []
-        while queue:
-            vertex = queue.popleft()
-            component.append(vertex)
-            for neighbor in adjacency_list[vertex]:
-                if not visited[neighbor]:
-                    visited[neighbor] = True
-                    queue.append(neighbor)
-        return component
-
-    # 查找所有连接组件并记录大小
-    largest_component = []
-    for vertex in range(len(vertices)):
-        if not visited[vertex]:
-            component = bfs(vertex)
-            if len(component) > len(largest_component):
-                largest_component = component
-
-    # 提取最大连接组件的顶点和面
-    largest_component = set(largest_component)
-    component_faces = [face for face in faces if all(v in largest_component for v in face)]
-    vertex_map = {old_idx: new_idx for new_idx, old_idx in enumerate(largest_component)}
-    component_vertices = vertices[list(largest_component)]
-    component_faces = np.array([[vertex_map[v] for v in face] for face in component_faces])
-
-    # 创建新的网格
-    largest_component_mesh = trimesh.Trimesh(vertices=component_vertices, faces=component_faces)
-    return largest_component_mesh
 
 def transform_dtu_mesh(scene, mesh):
-    train_cameras = scene.getTrainCameras()
-    points = []
-    for cam in train_cameras:
-        c2w = (cam.world_view_transform.T).inverse()
-        points.append(c2w[:3,3].cpu().numpy())
-    points = np.array(points)
-
     # Taking the biggest connected component
     print("Taking the biggest connected component")
-    mesh_tri = trimesh.Trimesh(vertices=np.asarray(mesh.vertices), faces=np.asarray(
-        mesh.triangles), vertex_colors=np.asarray(mesh.vertex_colors))
-    cleaned_mesh_tri = find_largest_connected_component(mesh_tri)
-    cleaned_mesh = o3d.geometry.TriangleMesh(
-        o3d.utility.Vector3dVector(cleaned_mesh_tri.vertices),
-        o3d.utility.Vector3iVector(cleaned_mesh_tri.faces)
-    )
-    vertex_colors = np.asarray(cleaned_mesh_tri.visual.vertex_colors)[
-        :, :3] / 255.0
-    cleaned_mesh.vertex_colors = o3d.utility.Vector3dVector(
-        vertex_colors.astype(np.float64))
-    
-    # cleaned_mesh = mesh
+    cleaned_mesh = mesh
+    triangle_clusters, cluster_n_triangles, cluster_area = cleaned_mesh.cluster_connected_triangles()
+    cluster_n_triangles = np.asarray(cluster_n_triangles)
+    largest_cluster_idx = cluster_n_triangles.argmax()
+    triangles_to_remove = np.array(triangle_clusters) != largest_cluster_idx
+    cleaned_mesh.remove_triangles_by_mask(triangles_to_remove)
+    cleaned_mesh.remove_unreferenced_vertices()
     
     # transform to world
     cam_file = f"{scene.source_path}/cameras_sphere.npz"

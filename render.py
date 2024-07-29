@@ -181,7 +181,7 @@ def render_sets(dataset : ModelParams, iteration : int, pipeline : PipelineParam
             print(f"extract_triangle_mesh")
             mesh = volume.extract_triangle_mesh()
 
-            path = os.path.join(dataset.model_path, "possion_mesh")
+            path = os.path.join(dataset.model_path, "mesh")
             os.makedirs(path, exist_ok=True)
             
             o3d.io.write_triangle_mesh(os.path.join(path, "tsdf_fusion.ply"), mesh, 
