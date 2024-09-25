@@ -92,7 +92,9 @@ class OptimizationParams(ParamGroup):
         self.densify_from_iter = 500
         self.densify_until_iter = 15_000
         self.densify_grad_threshold = 0.0002
+        self.scale_loss_weight = 100.0
         
+        self.wo_image_weight = False
         self.single_view_weight = 0.015
         self.single_view_weight_from_iter = 7000
 
@@ -105,6 +107,7 @@ class OptimizationParams(ParamGroup):
         self.multi_view_patch_size = 3
         self.multi_view_sample_num = 102400
         self.multi_view_pixel_noise_th = 1.0
+        self.wo_use_geo_occ_aware = False
 
         self.opacity_cull_threshold = 0.005
         self.densify_abs_grad_threshold = 0.0008

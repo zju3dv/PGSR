@@ -44,7 +44,7 @@ pip install submodules/simple-knn
 ```
 
 ## Dataset Preprocess
-Please download the DTU dataset from [Neus](https://www.dropbox.com/scl/fo/um3wj3ctiuoottbfmqmgb/ABZRltszDvWHJ824UL6DHw0?rlkey=3vjok0aivnoiaf8z5j6w05k92&e=1&dl=0), the Tanks and Temples dataset from [official webiste](https://www.tanksandtemples.org/download/), the Mip-NeRF 360 dataset from the [official webiste](https://jonbarron.info/mipnerf360/). You need to download the ground truth point clouds from the [DTU dataset](https://roboimagedata.compute.dtu.dk/?page_id=36). For the Tanks and Temples dataset, you need to download the reconstruction, alignment and cropfiles from the [official webiste](https://jonbarron.info/mipnerf360/). 
+Please download the preprocessed DTU dataset from [2DGS](https://surfsplatting.github.io/), the Tanks and Temples dataset from [official webiste](https://www.tanksandtemples.org/download/), the Mip-NeRF 360 dataset from the [official webiste](https://jonbarron.info/mipnerf360/). You need to download the ground truth point clouds from the [DTU dataset](https://roboimagedata.compute.dtu.dk/?page_id=36). For the Tanks and Temples dataset, you need to download the reconstruction, alignment and cropfiles from the [official webiste](https://jonbarron.info/mipnerf360/). 
 
 The data folder should like this:
 ```shell
@@ -52,10 +52,11 @@ data
 ├── dtu_dataset
 │   ├── dtu
 │   │   ├── scan24
-│   │   │   ├── image
+│   │   │   ├── images
 │   │   │   ├── mask
-│   │   │   ├── cameras_large.npz
-│   │   │   └── cameras_sphere.npz
+│   │   │   ├── sparse
+│   │   │   ├── cameras_sphere.npz
+│   │   │   └── cameras.npz
 │   │   └── ...
 │   ├── dtu_eval
 │   │   ├── Points
@@ -76,13 +77,10 @@ data
     └── ...
 ```
 
-Then run the scripts to preprocess dataset:
+Then run the scripts to preprocess Tanks and Temples dataset:
 ```shell
 # Install COLMAP
 Refer to https://colmap.github.io/install.html
-
-# DTU dataset
-python scripts/preprocess/convert_dtu.py --dtu_path your_dtu_path
 
 # Tanks and Temples dataset
 python scripts/preprocess/convert_tnt.py --tnt_path your_tnt_path
@@ -138,7 +136,7 @@ python render.py -m out_path --max_depth 10.0 --voxel_size 0.01
 ```
 
 ## Acknowledgements
-This project is built upon [3DGS](https://github.com/graphdeco-inria/gaussian-splatting). Densify is based on [AbsGau](https://github.com/TY424/AbsGS) and [GOF](https://github.com/autonomousvision/gaussian-opacity-fields?tab=readme-ov-file). DTU and Tanks and Temples dataset preprocess are based on [Neuralangelo scripts](https://github.com/NVlabs/neuralangelo/blob/main/DATA_PROCESSING.md). Evaluation scripts for DTU and Tanks and Temples dataset are based on [DTUeval-python](https://github.com/jzhangbs/DTUeval-python) and [TanksAndTemples](https://github.com/isl-org/TanksAndTemples/tree/master/python_toolbox/evaluation) respectively. We thank all the authors for their great work and repos. 
+This project is built upon [3DGS](https://github.com/graphdeco-inria/gaussian-splatting). Densify is based on [AbsGau](https://surfsplatting.github.io/) and [GOF](https://github.com/autonomousvision/gaussian-opacity-fields?tab=readme-ov-file). DTU and Tanks and Temples dataset preprocess are based on [Neuralangelo scripts](https://github.com/NVlabs/neuralangelo/blob/main/DATA_PROCESSING.md). Evaluation scripts for DTU and Tanks and Temples dataset are based on [DTUeval-python](https://github.com/jzhangbs/DTUeval-python) and [TanksAndTemples](https://github.com/isl-org/TanksAndTemples/tree/master/python_toolbox/evaluation) respectively. We thank all the authors for their great work and repos. 
 
 
 ## Citation

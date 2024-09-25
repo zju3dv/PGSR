@@ -1,10 +1,11 @@
+# adapted from https://github.com/jzhangbs/DTUeval-python
 import numpy as np
 import open3d as o3d
 import sklearn.neighbors as skln
 from tqdm import tqdm
 from scipy.io import loadmat
 import multiprocessing as mp
-import argparse, os, csv
+import argparse
 
 def sample_single_tri(input_):
     n1, n2, v1, v2, tri_vert = input_
@@ -43,40 +44,7 @@ if __name__ == '__main__':
         pbar = tqdm(total=9)
         pbar.set_description('read data mesh')
         data_mesh = o3d.io.read_triangle_mesh(args.data)
-        data_mesh.remove_unreferenced_vertices()
-        data_mesh.remove_degenerate_triangles()
-        
-        # align points cloud
-        p_pcd = o3d.geometry.PointCloud()
-        p_pcd.points = o3d.utility.Vector3dVector(np.asarray(data_mesh.vertices))
-        gt_pcd = o3d.io.read_point_cloud(f'{args.dataset_dir}/Points/stl/stl{args.scan:03}_total.ply')
-        reg = o3d.pipelines.registration.registration_icp(
-            p_pcd,
-            gt_pcd,
-            10.0,
-            np.identity(4),
-            o3d.pipelines.registration.TransformationEstimationPointToPoint(True),
-            o3d.pipelines.registration.ICPConvergenceCriteria(1e-6, 50),
-        )
-        reg2 = o3d.pipelines.registration.registration_icp(
-            p_pcd,
-            gt_pcd,
-            2.5,
-            reg.transformation,
-            o3d.pipelines.registration.TransformationEstimationPointToPoint(True),
-            o3d.pipelines.registration.ICPConvergenceCriteria(1e-6, 50),
-        )
-        reg3 = o3d.pipelines.registration.registration_icp(
-            p_pcd,
-            gt_pcd,
-            0.5,
-            reg2.transformation,
-            o3d.pipelines.registration.TransformationEstimationPointToPoint(True),
-            o3d.pipelines.registration.ICPConvergenceCriteria(1e-6, 50),
-        )
-        data_mesh.transform(reg3.transformation)
-        # o3d.io.write_triangle_mesh("output_mesh.ply", data_mesh)
-        
+
         vertices = np.asarray(data_mesh.vertices)
         triangles = np.asarray(data_mesh.triangles)
         tri_vert = vertices[triangles]
@@ -101,10 +69,7 @@ if __name__ == '__main__':
 
         new_pts = np.concatenate(new_pts, axis=0)
         data_pcd = np.concatenate([vertices, new_pts], axis=0)
-        
-        point_cloud = o3d.geometry.PointCloud()
-        point_cloud.points = o3d.utility.Vector3dVector(data_mesh.vertices)
-        o3d.io.write_point_cloud("output_point_cloud.pcd", point_cloud)
+    
     elif args.mode == 'pcd':
         pbar = tqdm(total=8)
         pbar.set_description('read data pcd')
@@ -191,11 +156,11 @@ if __name__ == '__main__':
     pbar.close()
     over_all = (mean_d2s + mean_s2d) / 2
     print(mean_d2s, mean_s2d, over_all)
-
-    out_file = os.path.join(args.vis_out_dir, 'result.csv')
-    with open(out_file, 'w', newline='') as f:
-        writer = csv.writer(f)
-        name = ['mean_d2s','mean_s2d','over_all']
-        data = [mean_d2s, mean_s2d, over_all]
-        writer.writerow(name)
-        writer.writerow(data)
+    
+    import json
+    with open(f'{args.vis_out_dir}/results.json', 'w') as fp:
+        json.dump({
+            'mean_d2s': mean_d2s,
+            'mean_s2d': mean_s2d,
+            'overall': over_all,
+        }, fp, indent=True)

@@ -39,6 +39,29 @@ def clean_mesh(mesh, min_len=1000):
     mesh_0.remove_triangles_by_mask(triangles_to_remove)
     return mesh_0
 
+def post_process_mesh(mesh, cluster_to_keep=1):
+    """
+    Post-process a mesh to filter out floaters and disconnected parts
+    """
+    import copy
+    print("post processing the mesh to have {} clusterscluster_to_kep".format(cluster_to_keep))
+    mesh_0 = copy.deepcopy(mesh)
+    with o3d.utility.VerbosityContextManager(o3d.utility.VerbosityLevel.Debug) as cm:
+            triangle_clusters, cluster_n_triangles, cluster_area = (mesh_0.cluster_connected_triangles())
+
+    triangle_clusters = np.asarray(triangle_clusters)
+    cluster_n_triangles = np.asarray(cluster_n_triangles)
+    cluster_area = np.asarray(cluster_area)
+    n_cluster = np.sort(cluster_n_triangles.copy())[-cluster_to_keep]
+    n_cluster = max(n_cluster, 50) # filter meshes smaller than 50
+    triangles_to_remove = cluster_n_triangles[triangle_clusters] < n_cluster
+    mesh_0.remove_triangles_by_mask(triangles_to_remove)
+    mesh_0.remove_unreferenced_vertices()
+    mesh_0.remove_degenerate_triangles()
+    print("num vertices raw {}".format(len(mesh.vertices)))
+    print("num vertices post {}".format(len(mesh_0.vertices)))
+    return mesh_0
+
 def render_set(model_path, name, iteration, views, scene, gaussians, pipeline, background, 
                app_model=None, max_depth=5.0, volume=None, use_depth_filter=False):
     gts_path = os.path.join(model_path, name, "ours_{}".format(iteration), "gt")
@@ -83,65 +106,19 @@ def render_set(model_path, name, iteration, views, scene, gaussians, pipeline, b
             view_dir = torch.nn.functional.normalize(view.get_rays(), p=2, dim=-1)
             depth_normal = out["depth_normal"].permute(1,2,0)
             depth_normal = torch.nn.functional.normalize(depth_normal, p=2, dim=-1)
-            dot = torch.sum(view_dir*depth_normal, dim=-1)
+            dot = torch.sum(view_dir*depth_normal, dim=-1).abs()
             angle = torch.acos(dot)
-            mask = angle > (100.0 / 180 * 3.14159)
+            mask = angle > (80.0 / 180 * 3.14159)
             depth_tsdf[mask] = 0
-        depths_tsdf_fusion.append(depth_tsdf.squeeze())
+        depths_tsdf_fusion.append(depth_tsdf.squeeze().cpu())
         
     if volume is not None:
         depths_tsdf_fusion = torch.stack(depths_tsdf_fusion, dim=0)
         for idx, view in enumerate(tqdm(views, desc="TSDF Fusion progress")):
-            ref_depth = depths_tsdf_fusion[idx]
-            
-            if use_depth_filter and len(view.nearest_id) > 2:
-                nearest_world_view_transforms = scene.world_view_transforms[view.nearest_id]
-                num_n = nearest_world_view_transforms.shape[0]
-                ## compute geometry consistency mask
-                H, W = ref_depth.squeeze().shape
+            ref_depth = depths_tsdf_fusion[idx].cuda()
 
-                ix, iy = torch.meshgrid(
-                    torch.arange(W), torch.arange(H), indexing='xy')
-                pixels = torch.stack([ix, iy], dim=-1).float().to(out['plane_depth'].device)
-
-                pts = gaussians.get_points_from_depth(view, ref_depth)
-                pts_in_nearest_cam = torch.matmul(nearest_world_view_transforms[:,None,:3,:3].expand(num_n,H*W,3,3).transpose(-1,-2), 
-                                                  pts[None,:,:,None].expand(num_n,H*W,3,1))[...,0] + nearest_world_view_transforms[:,None,3,:3] # b, pts, 3
-
-                depths_nearest = depths_tsdf_fusion[view.nearest_id][:,None]
-                pts_projections = torch.stack(
-                                [pts_in_nearest_cam[...,0] * view.Fx / pts_in_nearest_cam[...,2] + view.Cx,
-                                pts_in_nearest_cam[...,1] * view.Fy / pts_in_nearest_cam[...,2] + view.Cy], -1).float()
-                d_mask = (pts_projections[..., 0] > 0) & (pts_projections[..., 0] < view.image_width) &\
-                         (pts_projections[..., 1] > 0) & (pts_projections[..., 1] < view.image_height)
-
-                pts_projections[..., 0] /= ((view.image_width - 1) / 2)
-                pts_projections[..., 1] /= ((view.image_height - 1) / 2)
-                pts_projections -= 1
-                pts_projections = pts_projections.view(num_n, -1, 1, 2)
-                map_z = torch.nn.functional.grid_sample(input=depths_nearest,
-                                                        grid=pts_projections,
-                                                        mode='bilinear',
-                                                        padding_mode='border',
-                                                        align_corners=True
-                                                        )[:,0,:,0]
-                
-                pts_in_nearest_cam[...,0] = pts_in_nearest_cam[...,0]/pts_in_nearest_cam[...,2]*map_z.squeeze()
-                pts_in_nearest_cam[...,1] = pts_in_nearest_cam[...,1]/pts_in_nearest_cam[...,2]*map_z.squeeze()
-                pts_in_nearest_cam[...,2] = map_z.squeeze()
-                pts_ = (pts_in_nearest_cam-nearest_world_view_transforms[:,None,3,:3])
-                pts_ = torch.matmul(nearest_world_view_transforms[:,None,:3,:3].expand(num_n,H*W,3,3), 
-                                    pts_[:,:,:,None].expand(num_n,H*W,3,1))[...,0]
-
-                pts_in_view_cam = pts_ @ view.world_view_transform[:3,:3] + view.world_view_transform[None,None,3,:3]
-                pts_projections = torch.stack(
-                            [pts_in_view_cam[...,0] * view.Fx / pts_in_view_cam[...,2] + view.Cx,
-                            pts_in_view_cam[...,1] * view.Fy / pts_in_view_cam[...,2] + view.Cy], -1).float()
-                pixel_noise = torch.norm(pts_projections.reshape(num_n, H, W, 2) - pixels[None], dim=-1)
-                d_mask_all = d_mask.reshape(num_n,H,W) & (pixel_noise < 1.0) & (pts_in_view_cam[...,2].reshape(num_n,H,W) > 0.1)
-                d_mask_all = (d_mask_all.sum(0) > 1)
-                ref_depth[~d_mask_all] = 0
-
+            if view.mask is not None:
+                ref_depth[view.mask.squeeze() < 0.5] = 0
             ref_depth[ref_depth>max_depth] = 0
             ref_depth = ref_depth.detach().cpu().numpy()
             
@@ -158,7 +135,7 @@ def render_set(model_path, name, iteration, views, scene, gaussians, pipeline, b
                 pose)
 
 def render_sets(dataset : ModelParams, iteration : int, pipeline : PipelineParams, skip_train : bool, skip_test : bool,
-                 max_depth : float, voxel_size : float, use_depth_filter : bool):
+                 max_depth : float, voxel_size : float, num_cluster: int, use_depth_filter : bool):
     with torch.no_grad():
         gaussians = GaussianModel(dataset.sh_degree)
         scene = Scene(dataset, gaussians, load_iteration=iteration, shuffle=False)
@@ -169,11 +146,10 @@ def render_sets(dataset : ModelParams, iteration : int, pipeline : PipelineParam
 
         bg_color = [1,1,1] if dataset.white_background else [0, 0, 0]
         background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
-        print(f"TSDF voxel_size {voxel_size}")
         volume = o3d.pipelines.integration.ScalableTSDFVolume(
-        voxel_length=voxel_size,
-        sdf_trunc=4.0*voxel_size,
-        color_type=o3d.pipelines.integration.TSDFVolumeColorType.RGB8)
+            voxel_length=voxel_size,
+            sdf_trunc=4.0*voxel_size,
+            color_type=o3d.pipelines.integration.TSDFVolumeColorType.RGB8)
 
         if not skip_train:
             render_set(dataset.model_path, "train", scene.loaded_iter, scene.getTrainCameras(), scene, gaussians, pipeline, background, 
@@ -186,9 +162,8 @@ def render_sets(dataset : ModelParams, iteration : int, pipeline : PipelineParam
             
             o3d.io.write_triangle_mesh(os.path.join(path, "tsdf_fusion.ply"), mesh, 
                                        write_triangle_uvs=True, write_vertex_colors=True, write_vertex_normals=True)
-            mesh = clean_mesh(mesh)
-            mesh.remove_unreferenced_vertices()
-            mesh.remove_degenerate_triangles()
+            
+            mesh = post_process_mesh(mesh, num_cluster)
             o3d.io.write_triangle_mesh(os.path.join(path, "tsdf_fusion_post.ply"), mesh, 
                                        write_triangle_uvs=True, write_vertex_colors=True, write_vertex_normals=True)
 
@@ -207,6 +182,7 @@ if __name__ == "__main__":
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--max_depth", default=5.0, type=float)
     parser.add_argument("--voxel_size", default=0.002, type=float)
+    parser.add_argument("--num_cluster", default=1, type=int)
     parser.add_argument("--use_depth_filter", action="store_true")
 
     args = get_combined_args(parser)
@@ -215,4 +191,4 @@ if __name__ == "__main__":
     # Initialize system state (RNG)
     safe_state(args.quiet)
     print(f"multi_view_num {model.multi_view_num}")
-    render_sets(model.extract(args), args.iteration, pipeline.extract(args), args.skip_train, args.skip_test, args.max_depth, args.voxel_size, args.use_depth_filter)
+    render_sets(model.extract(args), args.iteration, pipeline.extract(args), args.skip_train, args.skip_test, args.max_depth, args.voxel_size, args.num_cluster, args.use_depth_filter)

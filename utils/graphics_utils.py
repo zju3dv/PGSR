@@ -27,7 +27,7 @@ def depth2point_cam(sampled_depth, ref_intrinsic):
     valid_z = sampled_depth
     valid_x = torch.arange(W, dtype=torch.float32, device=sampled_depth.device) / (W - 1)
     valid_y = torch.arange(H, dtype=torch.float32, device=sampled_depth.device) / (H - 1)
-    valid_y, valid_x = torch.meshgrid(valid_y, valid_x)
+    valid_x, valid_y = torch.meshgrid(valid_x, valid_y, indexing='xy')
     # B,N,H,W
     valid_x = valid_x[None, None, None, ...].expand(B, N, C, -1, -1)
     valid_y = valid_y[None, None, None, ...].expand(B, N, C, -1, -1)
@@ -182,7 +182,7 @@ def focal2fov(focal, pixels):
 
 def patch_offsets(h_patch_size, device):
     offsets = torch.arange(-h_patch_size, h_patch_size + 1, device=device)
-    return torch.stack(torch.meshgrid(offsets, offsets)[::-1], dim=-1).view(1, -1, 2)
+    return torch.stack(torch.meshgrid(offsets, offsets, indexing='xy')[::-1], dim=-1).view(1, -1, 2)
 
 def patch_warp(H, uv):
     B, P = uv.shape[:2]

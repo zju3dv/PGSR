@@ -179,8 +179,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             scale = gaussians.get_scaling[visibility_filter]
             sorted_scale, _ = torch.sort(scale, dim=-1)
             min_scale_loss = sorted_scale[...,0]
-            loss += 100.0*min_scale_loss.mean()
-
+            loss += opt.scale_loss_weight * min_scale_loss.mean()
         # single-view loss
         if iteration > opt.single_view_weight_from_iter:
             weight = opt.single_view_weight
@@ -188,20 +187,13 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             depth_normal = render_pkg["depth_normal"]
 
             image_weight = (1.0 - get_img_grad_weight(gt_image))
-            image_weight = (image_weight).clamp(0,1).detach() ** 5
-            image_weight = erode(image_weight[None,None]).squeeze()
-
-            normal_loss = weight * (image_weight * (((depth_normal - normal)).abs().sum(0))).mean()
+            image_weight = (image_weight).clamp(0,1).detach() ** 2
+            if not opt.wo_image_weight:
+                # image_weight = erode(image_weight[None,None]).squeeze()
+                normal_loss = weight * (image_weight * (((depth_normal - normal)).abs().sum(0))).mean()
+            else:
+                normal_loss = weight * (((depth_normal - normal)).abs().sum(0)).mean()
             loss += (normal_loss)
-
-            # normal_grad_x = (normal[:,1:-1,:-2] - normal[:,1:-1,2:]).abs()
-            # normal_grad_y = (normal[:,:-2,1:-1] - normal[:,2:,1:-1]).abs()
-            # smooth_normal_loss = 0.002 * ((normal_grad_x + normal_grad_y)).mean()
-            # distance_grad_x = (render_pkg['rendered_distance'][:,1:-1,:-2] - render_pkg['rendered_distance'][:,1:-1,2:]).abs()
-            # distance_grad_y = (render_pkg['rendered_distance'][:,:-2,1:-1] - render_pkg['rendered_distance'][:,2:,1:-1]).abs()
-            # smooth_distance_loss = 0.002 * (image_weight[None,1:-1,1:-1] * (distance_grad_x + distance_grad_y)).mean()
-            # loss += (smooth_normal_loss)
-            # loss += (smooth_distance_loss)
 
         # multi-view loss
         if iteration > opt.multi_view_weight_from_iter:
@@ -240,9 +232,14 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                             [pts_in_view_cam[:,0] * viewpoint_cam.Fx / pts_in_view_cam[:,2] + viewpoint_cam.Cx,
                             pts_in_view_cam[:,1] * viewpoint_cam.Fy / pts_in_view_cam[:,2] + viewpoint_cam.Cy], -1).float()
                 pixel_noise = torch.norm(pts_projections - pixels.reshape(*pts_projections.shape), dim=-1)
-                d_mask = d_mask & (pixel_noise < pixel_noise_th)
-                weights = (1.0 / torch.exp(pixel_noise)).detach()
-                weights[~d_mask] = 0
+                if not opt.wo_use_geo_occ_aware:
+                    d_mask = d_mask & (pixel_noise < pixel_noise_th)
+                    weights = (1.0 / torch.exp(pixel_noise)).detach()
+                    weights[~d_mask] = 0
+                else:
+                    d_mask = d_mask
+                    weights = torch.ones_like(pixel_noise)
+                    weights[~d_mask] = 0
                 if iteration % 200 == 0:
                     gt_img_show = ((gt_image).permute(1,2,0).clamp(0,1)[:,:,[2,1,0]]*255).detach().cpu().numpy().astype(np.uint8)
                     if 'app_image' in render_pkg:
@@ -257,8 +254,15 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                     depth_i = (depth - depth.min()) / (depth.max() - depth.min() + 1e-20)
                     depth_i = (depth_i * 255).clip(0, 255).astype(np.uint8)
                     depth_color = cv2.applyColorMap(depth_i, cv2.COLORMAP_JET)
-                    row0 = np.concatenate([gt_img_show, img_show, normal_show], axis=1)
-                    row1 = np.concatenate([d_mask_show_color, depth_color, depth_normal_show], axis=1)
+                    distance = render_pkg['rendered_distance'].squeeze().detach().cpu().numpy()
+                    distance_i = (distance - distance.min()) / (distance.max() - distance.min() + 1e-20)
+                    distance_i = (distance_i * 255).clip(0, 255).astype(np.uint8)
+                    distance_color = cv2.applyColorMap(distance_i, cv2.COLORMAP_JET)
+                    image_weight = image_weight.detach().cpu().numpy()
+                    image_weight = (image_weight * 255).clip(0, 255).astype(np.uint8)
+                    image_weight_color = cv2.applyColorMap(image_weight, cv2.COLORMAP_JET)
+                    row0 = np.concatenate([gt_img_show, img_show, normal_show, distance_color], axis=1)
+                    row1 = np.concatenate([d_mask_show_color, depth_color, depth_normal_show, image_weight_color], axis=1)
                     image_to_show = np.concatenate([row0, row1], axis=0)
                     cv2.imwrite(os.path.join(debug_path, "%05d"%iteration + "_" + viewpoint_cam.image_name + ".jpg"), image_to_show)
 
@@ -296,9 +300,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
                         ref_local_d = render_pkg['rendered_distance'].squeeze()
                         # rays_d = viewpoint_cam.get_rays()
-                        # rendered_normal2 = rendered_normal.reshape(-1,3)
+                        # rendered_normal2 = render_pkg["rendered_normal"].permute(1,2,0).reshape(-1,3)
                         # ref_local_d = render_pkg['plane_depth'].view(-1) * ((rendered_normal2 * rays_d.reshape(-1,3)).sum(-1).abs())
-                        # ref_local_d = ref_local_d.reshape(H,W)
+                        # ref_local_d = ref_local_d.reshape(*render_pkg['plane_depth'].shape)
 
                         ref_local_d = ref_local_d.reshape(-1)[valid_indices]
                         H_ref_to_neareast = ref_to_neareast_r[None] - \
@@ -394,10 +398,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 print("\n[ITER {}] Saving Checkpoint".format(iteration))
                 torch.save((gaussians.capture(), iteration), scene.model_path + "/chkpnt" + str(iteration) + ".pth")
                 app_model.save_weights(scene.model_path, iteration)
-
-            if iteration % 500 == 0:
-                torch.cuda.empty_cache()
     
+    app_model.save_weights(scene.model_path, opt.iterations)
     torch.cuda.empty_cache()
 
 def prepare_output_and_logger(args):    
