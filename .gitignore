@@ -1,0 +1,7 @@
+submodules/*/build
+submodules/*/.cache
+compile_commands.json
+.cache
+datasets
+outputs
+*/__pycache__
