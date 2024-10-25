@@ -1,0 +1,27 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "office_4",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "train.py",
+            "args": [
+                "-s",
+                "datasets/sampling/office_4",
+                "-m",
+                "outputs/office_4/normal",
+                "-r",
+                "2",
+                "--max_abs_split_points",
+                "0",
+                "--opacity_cull_threshold",
+                "0.05"
+            ],
+            "console": "integratedTerminal"
+        }
+    ]
+}
