@@ -5,3 +5,4 @@ compile_commands.json
 datasets
 outputs
 */__pycache__
+*.pt

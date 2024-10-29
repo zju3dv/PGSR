@@ -24,7 +24,9 @@
                 "--max_abs_split_points",
                 "0",
                 "--opacity_cull_threshold",
-                "0.05"
+                "0.05",
+                "--debug_tensor",
+                "./debug_tensor"
             ],
             "console": "integratedTerminal"
         }

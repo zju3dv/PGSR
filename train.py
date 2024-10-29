@@ -92,6 +92,10 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     os.system(cmd)
     cmd = f'cp -rf ./utils {dataset.model_path}/'
     os.system(cmd)
+    
+    if (args.debug_tensor != ""):
+        cmd = f'rm -r {args.debug_tensor}/*'
+        os.system(cmd)
 
     gaussians = GaussianModel(dataset.sh_degree)
     scene = Scene(dataset, gaussians)
@@ -193,8 +197,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 normal_loss = weight * (image_weight * (((depth_normal - normal)).abs().sum(0))).mean()
             else:
                 normal_loss = weight * (((depth_normal - normal)).abs().sum(0)).mean()
-            loss += (normal_loss)
-            
+            loss += (normal_loss)       
 
         # multi-view loss
         if iteration > opt.multi_view_weight_from_iter:
@@ -330,6 +333,18 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                             ncc_loss = ncc_weight * ncc.mean()
                             loss += ncc_loss
 
+        # save debug tensors
+        if ((len(args.debug_tensor) > 0) and (iteration % 100 == 0)):
+            debug_tensor_path = args.debug_tensor
+            if not os.path.exists(debug_tensor_path):
+                raise FileNotFoundError(f"cannot found path: '{debug_tensor_path}'")
+            save_list = ["render", "app_image", "rendered_normal", "depth_normal"]
+            for key in save_list:
+                try:
+                    torch.save(render_pkg[key], os.path.join(debug_tensor_path, key + ".pt"))
+                except KeyError:
+                    pass
+            
         loss.backward()
         iter_end.record()
 
@@ -477,6 +492,7 @@ if __name__ == "__main__":
     pp = PipelineParams(parser)
     parser.add_argument('--ip', type=str, default="127.0.0.1")
     parser.add_argument('--port', type=int, default=6007)
+    parser.add_argument('--debug_tensor', type=str, default="")
     parser.add_argument('--debug_from', type=int, default=-100)
     parser.add_argument('--detect_anomaly', action='store_true', default=False)
     parser.add_argument("--test_iterations", nargs="+", type=int, default=[7_000, 30_000])
