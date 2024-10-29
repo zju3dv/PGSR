@@ -99,6 +99,8 @@ class OptimizationParams(ParamGroup):
         self.wo_image_weight = False
         self.single_view_weight = 0.015
         self.single_view_weight_from_iter = 3000
+        
+        self.dn_weight = 0.03
 
         self.use_virtul_cam = False
         self.virtul_cam_prob = 0.5

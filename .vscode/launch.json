@@ -10,13 +10,13 @@
             "request": "launch",
             "program": "train.py",
             "env": {
-                "CUDA_VISIBLE_DEVICES": "5" 
+                "CUDA_VISIBLE_DEVICES": "4" 
             },
             "args": [
                 "-s",
                 "datasets/sampling/office_4",
                 "-m",
-                "outputs/office_4/normal",
+                "outputs/office_4/depth",
                 "-r",
                 "2",
                 "-d",
