@@ -210,12 +210,11 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         if iteration > opt.single_view_weight_from_iter and viewpoint_cam.depth_reliable:
             weight = opt.dn_weight
             depth = normalize(1 / (render_pkg["plane_depth"] + 0.5))
-            mono_invdepth = normalize(viewpoint_cam.invdepthmap.cuda())
+            mono_invdepth = normalize(1 / (viewpoint_cam.invdepthmap.cuda() + 0.5))
             Ll1depth_pure = torch.abs(mono_invdepth  - depth).mean()
-            LSimDepth = ssim(depth, mono_invdepth)
-            loss += weight * (0.5 * LSimDepth + 0.5 * Ll1depth_pure)
-            # loss += Ll1depth_pure * weight
-            
+            loss += Ll1depth_pure * weight
+            # LSimDepth = ssim(depth, mono_invdepth)
+            # loss += weight * (0.5 * LSimDepth + 0.5 * Ll1depth_pure)
             debug_tensor["plane_depth"] = depth
             debug_tensor["invdepthmap"] = mono_invdepth
 
@@ -364,7 +363,6 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                     torch.save(debug_tensor[key], os.path.join(debug_tensor_path, key + ".pt"))
                 except KeyError:
                     pass
-            torch.save(viewpoint_cam.invdepthmap.cuda(), os.path.join(debug_tensor_path, "invdepthmap.pt"))
             
         loss.backward()
         iter_end.record()

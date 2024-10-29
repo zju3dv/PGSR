@@ -20,7 +20,7 @@
                 "-r",
                 "2",
                 "-d",
-                "~/workspace/PGSR/datasets/sampling/office_4/depth",
+                "~/workspace/PGSR/datasets/sampling/office_4/depth_metric",
                 "--max_abs_split_points",
                 "0",
                 "--opacity_cull_threshold",
