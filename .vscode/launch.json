@@ -9,6 +9,9 @@
             "type": "debugpy",
             "request": "launch",
             "program": "train.py",
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "6" 
+            },
             "args": [
                 "-s",
                 "datasets/sampling/office_4",
@@ -16,6 +19,8 @@
                 "outputs/office_4/normal",
                 "-r",
                 "2",
+                "-d",
+                "~/workspace/PGSR/datasets/sampling/office_4/depth",
                 "--max_abs_split_points",
                 "0",
                 "--opacity_cull_threshold",

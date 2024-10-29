@@ -194,6 +194,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             else:
                 normal_loss = weight * (((depth_normal - normal)).abs().sum(0)).mean()
             loss += (normal_loss)
+            
 
         # multi-view loss
         if iteration > opt.multi_view_weight_from_iter:

@@ -13,6 +13,8 @@ from scene.cameras import Camera
 import numpy as np
 from utils.graphics_utils import fov2focal
 import sys
+from PIL import Image
+import cv2
 
 WARNED = False
 
@@ -43,9 +45,9 @@ def loadCam(args, id, cam_info, resolution_scale):
     sys.stdout.flush()
 
     return Camera(colmap_id=cam_info.uid, R=cam_info.R, T=cam_info.T, 
-                  FoVx=cam_info.FovX, FoVy=cam_info.FovY,
+                  FoVx=cam_info.FovX, FoVy=cam_info.FovY, depth_params=cam_info.depth_params,
                   image_width=resolution[0], image_height=resolution[1],
-                  image_path=cam_info.image_path,
+                  image_path=cam_info.image_path, depth_path=cam_info.depth_path,
                   image_name=cam_info.image_name, uid=cam_info.global_id, 
                   preload_img=args.preload_img, 
                   ncc_scale=args.ncc_scale,
