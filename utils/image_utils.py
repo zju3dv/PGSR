@@ -28,3 +28,7 @@ def dilate(bin_img, ksize=5):
 def erode(bin_img, ksize=5):
     out = 1 - dilate(1 - bin_img, ksize)
     return out
+
+def normalize(img):
+    img = (img - img.min()) / (img.max() - img.min())
+    return img

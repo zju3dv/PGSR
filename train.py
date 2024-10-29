@@ -24,7 +24,7 @@ from utils.general_utils import safe_state
 import cv2
 import uuid
 from tqdm import tqdm
-from utils.image_utils import psnr, erode
+from utils.image_utils import psnr, erode, normalize
 from argparse import ArgumentParser, Namespace
 from arguments import ModelParams, PipelineParams, OptimizationParams
 from scene.app_model import AppModel
@@ -186,7 +186,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             loss += opt.scale_loss_weight * min_scale_loss.mean()
         # single-view loss
         if iteration > opt.single_view_weight_from_iter:
-            weight = opt.single_view_weight
+            weight = opt.single_view_weight / 2
             normal = render_pkg["rendered_normal"]
             depth_normal = render_pkg["depth_normal"]
 
@@ -197,7 +197,17 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 normal_loss = weight * (image_weight * (((depth_normal - normal)).abs().sum(0))).mean()
             else:
                 normal_loss = weight * (((depth_normal - normal)).abs().sum(0)).mean()
-            loss += (normal_loss)       
+            loss += (normal_loss)      
+            
+        # DN-loss
+        if iteration > opt.single_view_weight_from_iter and viewpoint_cam.depth_reliable:
+            weight = opt.single_view_weight / 2
+            depth = normalize(1 / (render_pkg["plane_depth"] + 0.5))
+            mono_invdepth = normalize(viewpoint_cam.invdepthmap.cuda())
+            Ll1depth_pure = torch.abs(mono_invdepth  - depth).mean()
+            # LSimDepth = ssim(depth, mono_invdepth)
+            # loss += weight * (0.5 * LSimDepth + 0.5 * LSimDepth)
+            loss += Ll1depth_pure * weight
 
         # multi-view loss
         if iteration > opt.multi_view_weight_from_iter:
@@ -338,12 +348,13 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             debug_tensor_path = args.debug_tensor
             if not os.path.exists(debug_tensor_path):
                 raise FileNotFoundError(f"cannot found path: '{debug_tensor_path}'")
-            save_list = ["render", "app_image", "rendered_normal", "depth_normal"]
+            save_list = ["render", "app_image", "rendered_normal", "depth_normal", "plane_depth"]
             for key in save_list:
                 try:
                     torch.save(render_pkg[key], os.path.join(debug_tensor_path, key + ".pt"))
                 except KeyError:
                     pass
+            torch.save(viewpoint_cam.invdepthmap.cuda(), os.path.join(debug_tensor_path, "invdepthmap.pt"))
             
         loss.backward()
         iter_end.record()

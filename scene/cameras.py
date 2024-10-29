@@ -34,7 +34,6 @@ def process_image(image_path, depth_path, resolution, ncc_scale):
     if depth_path != "":
         try:
             invdepthmap = cv2.imread(depth_path, -1).astype(np.float32) / float(2**16)
-            invdepthmap = Image.fromarray(invdepthmap)
 
         except FileNotFoundError:
             print(f"Error: The depth file at path '{depth_path}' was not found.")
@@ -63,7 +62,9 @@ def process_image(image_path, depth_path, resolution, ncc_scale):
             ncc_resolution = (int(resolution[0]/ncc_scale), int(resolution[1]/ncc_scale))
             resized_image_rgb = PILtoTorch(image, ncc_resolution)
     gray_image = (0.299 * resized_image_rgb[0] + 0.587 * resized_image_rgb[1] + 0.114 * resized_image_rgb[2])[None]
-    depth_image = PILtoTorch(invdepthmap, resolution)
+    depth_image = cv2.resize(invdepthmap, resolution)
+    depth_image = torch.Tensor(depth_image).unsqueeze(0)
+    # depth_image = PILtoTorch(invdepthmap, resolution)
     return gt_image, gray_image, loaded_mask, depth_image
 
 class Camera(nn.Module):
@@ -119,9 +120,7 @@ class Camera(nn.Module):
                     if depth_params["scale"] > 0:
                         self.invdepthmap = self.invdepthmap * depth_params["scale"] + depth_params["offset"]
 
-                if self.invdepthmap.ndim != 2:
-                    self.invdepthmap = self.invdepthmap[..., 0]
-                self.invdepthmap = PILtoTorch(self.invdepthmap[None]).to(self.data_device)
+                self.invdepthmap = self.invdepthmap.to(self.data_device)
 
             self.original_image = gt_image.to(self.data_device)
             self.original_image_gray = gray_image.to(self.data_device)

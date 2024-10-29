@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "train.py",
             "env": {
-                "CUDA_VISIBLE_DEVICES": "6" 
+                "CUDA_VISIBLE_DEVICES": "5" 
             },
             "args": [
                 "-s",
