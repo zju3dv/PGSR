@@ -10,19 +10,19 @@
             "request": "launch",
             "program": "train.py",
             "env": {
-                "CUDA_VISIBLE_DEVICES": "4" 
+                "CUDA_VISIBLE_DEVICES": "5" 
             },
             "args": [
                 "-s",
                 "datasets/sampling/office_4",
                 "-m",
-                "outputs/office_4/depth",
+                "outputs/office_4/normal",
                 "-r",
                 "2",
                 "-d",
                 "~/workspace/PGSR/datasets/sampling/office_4/depth_metric",
-                "--max_abs_split_points",
-                "0",
+                // "--max_abs_split_points",
+                // "0",
                 "--opacity_cull_threshold",
                 "0.05",
                 "--debug_tensor",

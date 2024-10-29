@@ -16,7 +16,7 @@ import random
 import numpy as np
 from random import randint
 from utils.loss_utils import l1_loss, ssim, lncc, get_img_grad_weight
-from utils.graphics_utils import patch_offsets, patch_warp
+from utils.graphics_utils import patch_offsets, patch_warp, normal_from_depth_image
 from gaussian_renderer import render, network_gui
 import sys, time
 from scene import Scene, GaussianModel
@@ -206,7 +206,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             debug_tensor["rendered_normal"] = normal
             debug_tensor["depth_normal"] = depth_normal
             
-        # DN-loss
+        # Depth-loss
         if iteration > opt.single_view_weight_from_iter and viewpoint_cam.depth_reliable:
             weight = opt.dn_weight
             depth = normalize(1 / (render_pkg["plane_depth"] + 0.5))
@@ -217,6 +217,15 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             # loss += weight * (0.5 * LSimDepth + 0.5 * Ll1depth_pure)
             debug_tensor["plane_depth"] = depth
             debug_tensor["invdepthmap"] = mono_invdepth
+            
+            # Normal-loss
+            intrinsic_matrix, extrinsic_matrix = viewpoint_cam.get_calib_matrix_nerf(scale=1.0)
+            depth_normal_gt = normal_from_depth_image(viewpoint_cam.invdepthmap.cuda().squeeze(), intrinsic_matrix.cuda(), extrinsic_matrix.cuda())
+            depth_normal_gt = depth_normal_gt.permute(2, 0, 1)
+            depth_normal = render_pkg["depth_normal"]
+            normal_loss = (((depth_normal - depth_normal_gt)).abs().sum(0)).mean()
+            loss += weight * normal_loss
+            debug_tensor["normal"] = depth_normal_gt
 
         # multi-view loss
         if iteration > opt.multi_view_weight_from_iter:
@@ -357,8 +366,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             debug_tensor_path = args.debug_tensor
             if not os.path.exists(debug_tensor_path):
                 raise FileNotFoundError(f"cannot found path: '{debug_tensor_path}'")
-            save_list = ["render", "rendered_normal", "depth_normal", "plane_depth", "invdepthmap"]
-            for key in save_list:
+            for key in debug_tensor.keys():
                 try:
                     torch.save(debug_tensor[key], os.path.join(debug_tensor_path, key + ".pt"))
                 except KeyError:
