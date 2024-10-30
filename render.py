@@ -180,8 +180,8 @@ if __name__ == "__main__":
     parser.add_argument("--skip_train", action="store_true")
     parser.add_argument("--skip_test", action="store_true")
     parser.add_argument("--quiet", action="store_true")
-    parser.add_argument("--max_depth", default=5.0, type=float)
-    parser.add_argument("--voxel_size", default=0.002, type=float)
+    parser.add_argument("--max_depth", default=40.0, type=float)
+    parser.add_argument("--voxel_size", default=0.05, type=float)
     parser.add_argument("--num_cluster", default=1, type=int)
     parser.add_argument("--use_depth_filter", action="store_true")
 

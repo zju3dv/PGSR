@@ -32,3 +32,10 @@ def erode(bin_img, ksize=5):
 def normalize(img):
     img = (img - img.min()) / (img.max() - img.min())
     return img
+
+def normalize_rgb(img):
+    r, g, b = img[0, :, :], img[1, :, :], img[2, :, :]
+    r = normalize(r)
+    g = normalize(g)
+    b = normalize(b)
+    return torch.stack([r, g, b], dim=0)
