@@ -33,8 +33,8 @@ def process_image(image_path, depth_path, resolution, ncc_scale):
     image = Image.open(image_path)
     if depth_path != "":
         try:
-            invdepthmap = cv2.imread(depth_path, -1).astype(np.float32) / float(2**16)
-
+            # invdepthmap = cv2.imread(depth_path, -1).astype(np.float32) / float(2**16)
+            invdepthmap = torch.load(depth_path).cpu().numpy()
         except FileNotFoundError:
             print(f"Error: The depth file at path '{depth_path}' was not found.")
             raise

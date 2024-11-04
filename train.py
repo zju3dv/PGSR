@@ -201,7 +201,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 normal_loss = weight * (image_weight * (((depth_normal - normal)).abs().sum(0))).mean()
             else:
                 normal_loss = weight * (((depth_normal - normal)).abs().sum(0)).mean()
-            loss += (normal_loss)      
+            loss += (normal_loss)
             
             debug_tensor["rendered_normal"] = normal
             debug_tensor["depth_normal"] = depth_normal
@@ -232,7 +232,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             # Normal-loss
             intrinsic_matrix, extrinsic_matrix = viewpoint_cam.get_calib_matrix_nerf(scale=1.0)
             depth_normal_gt = normal_from_depth_image(depth_metric.squeeze(), intrinsic_matrix.cuda(), extrinsic_matrix.cuda())
-            depth_normal_gt = mean_filter(depth_normal_gt[None], 9).squeeze()
+            # depth_normal_gt = mean_filter(depth_normal_gt[None], 9).squeeze()
             depth_normal_gt = normalize(depth_normal_gt.permute(2, 0, 1))
             depth_normal = normalize(render_pkg["depth_normal"])
             normal_loss = (((depth_normal - depth_normal_gt)).abs().sum(0)).mean()
