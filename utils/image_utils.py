@@ -29,6 +29,12 @@ def erode(bin_img, ksize=5):
     out = 1 - dilate(1 - bin_img, ksize)
     return out
 
+def mean_filter(img: torch.Tensor, ksize: int = 5):
+    pad = (ksize - 1) // 2
+    img = F.pad(img, pad=[pad, pad, pad, pad], mode='reflect')
+    out = F.avg_pool2d(img, kernel_size=ksize, stride=1, padding=0)
+    return out
+
 def normalize(img):
     img = (img - img.min()) / (img.max() - img.min())
     return img
