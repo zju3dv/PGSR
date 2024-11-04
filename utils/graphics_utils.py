@@ -62,7 +62,7 @@ def depth_pcd2normal(xyz, offset=None, gt_image=None):
         right_point = sampled_xyzs[:,:,2]
         left_point = sampled_xyzs[:,:,3]
     else:
-        cross_distance = 2
+        cross_distance = 4
         bottom_point = xyz[..., 2 * cross_distance:hd,   cross_distance:wd-cross_distance, :]
         top_point    = xyz[..., 0:hd-2 * cross_distance, cross_distance:wd-cross_distance, :]
         right_point  = xyz[..., cross_distance:hd-cross_distance, 2 * cross_distance:wd,   :]
@@ -71,7 +71,7 @@ def depth_pcd2normal(xyz, offset=None, gt_image=None):
     bottom_to_top = top_point - bottom_point 
     xyz_normal = torch.cross(left_to_right, bottom_to_top, dim=-1)
     xyz_normal = torch.nn.functional.normalize(xyz_normal, p=2, dim=-1)
-    xyz_normal = torch.nn.functional.pad(xyz_normal.permute(2,0,1), (2, 2, 2, 2), mode='constant').permute(1,2,0)
+    xyz_normal = torch.nn.functional.pad(xyz_normal.permute(2,0,1), (cross_distance, cross_distance, cross_distance, cross_distance), mode='constant').permute(1,2,0)
     return xyz_normal
 
 def normal_from_depth_image(depth, intrinsic_matrix, extrinsic_matrix, offset=None, gt_image=None):
