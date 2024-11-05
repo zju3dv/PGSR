@@ -212,7 +212,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         
         if iteration > opt.single_view_weight_from_iter and viewpoint_cam.depth_reliable and depth_l1_weight(iteration) > 0:
             weight = depth_l1_weight(iteration)
-            normal_weight = weight * 2
+            normal_weight = weight / 2
 
             depth_mask = render_pkg["plane_depth"] > 0
 
