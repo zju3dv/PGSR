@@ -25,6 +25,7 @@ import cv2
 import uuid
 from tqdm import tqdm
 from utils.image_utils import psnr, erode, normalize, normalize_rgb, mean_filter
+from utils.general_utils import get_expon_lr_func
 from argparse import ArgumentParser, Namespace
 from arguments import ModelParams, PipelineParams, OptimizationParams
 from scene.app_model import AppModel
@@ -207,9 +208,11 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             debug_tensor["depth_normal"] = depth_normal
             
         # Depth-loss
-        if iteration > opt.single_view_weight_from_iter and viewpoint_cam.depth_reliable:
-            weight = opt.dn_weight
-            normal_weight = weight / 2
+        depth_l1_weight = get_expon_lr_func(opt.dn_l1_weight_init, opt.dn_l1_weight_final, max_steps=opt.iterations)
+        
+        if iteration > opt.single_view_weight_from_iter and viewpoint_cam.depth_reliable and depth_l1_weight(iteration) > 0:
+            weight = depth_l1_weight(iteration)
+            normal_weight = weight * 2
 
             depth_mask = render_pkg["plane_depth"] > 0
 
@@ -224,6 +227,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
             Ll1depth_pure = l1_loss(mono_invdepth, depth)
             loss += weight * Ll1depth_pure
+            
             # LSimDepth = (1.0 - ssim(depth, mono_invdepth))
             # loss += weight * (0.5 * LSimDepth + 0.5 * Ll1depth_pure)
             debug_tensor["plane_depth"] = depth
