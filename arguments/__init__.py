@@ -78,7 +78,7 @@ class PipelineParams(ParamGroup):
 
 class OptimizationParams(ParamGroup):
     def __init__(self, parser):
-        self.iterations = 30_000
+        self.iterations = 15_000
         self.position_lr_init = 0.00016
         self.position_lr_final = 0.0000016
         self.position_lr_delay_mult = 0.01
@@ -98,7 +98,7 @@ class OptimizationParams(ParamGroup):
         
         self.wo_image_weight = False
         self.single_view_weight = 0.015
-        self.single_view_weight_from_iter = 7000
+        self.single_view_weight_from_iter = 5000
         
         self.dn_weight = 0.5
         self.dn_l1_weight_init = 2.0

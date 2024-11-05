@@ -23,6 +23,7 @@ from scene import Scene, GaussianModel
 from utils.general_utils import safe_state
 import cv2
 import uuid
+import json
 from tqdm import tqdm
 from utils.image_utils import psnr, erode, normalize, normalize_rgb, mean_filter
 from utils.general_utils import get_expon_lr_func
@@ -145,6 +146,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         #         network_gui.conn = None
         
         debug_tensor = {}
+        debug_loss = {}
 
         iter_start.record()
         gaussians.update_learning_rate(iteration)
@@ -207,8 +209,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             debug_tensor["rendered_normal"] = normal
             debug_tensor["depth_normal"] = depth_normal
             
-        dn_l1_weight = opt.dn_weight
-        # dn_l1_weight = get_expon_lr_func(opt.dn_l1_weight_init, opt.dn_l1_weight_final, max_steps=opt.iterations)(iteration)
+        # dn_l1_weight = opt.dn_weight
+        dn_l1_weight = get_expon_lr_func(opt.dn_l1_weight_init, opt.dn_l1_weight_final, max_steps=opt.iterations)(iteration)
         
         if iteration > opt.single_view_weight_from_iter and viewpoint_cam.depth_reliable and dn_l1_weight > 0:
             depth_weight = dn_l1_weight
@@ -226,17 +228,32 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             
             normal_loss = (((depth_normal - depth_normal_gt)).abs().sum(0)).mean()
             loss += normal_weight * normal_loss
+            
             debug_tensor["normal"] = depth_normal_gt
+            debug_loss["normal_loss"] = normal_loss.item()
             
             # Depth-loss
             depth = normalize(render_pkg["plane_depth"])
             depth_metric_norm = normalize(depth_metric)
-            # loss += depth_weight * l1_loss(depth, depth_metric_norm) 
             
+            # Depth-Normal-loss
+            depth_diff = (depth - depth_metric_norm).abs()
+            zeros = torch.zeros(1, depth_diff.size(1), depth_diff.size(2)).cuda()
+            depth_diff = torch.cat((zeros, zeros, depth_diff), dim=0)
+            depth_diff = depth_diff.permute(1, 2, 0)
+            depth_normal_gt = depth_normal_gt.permute(1, 2, 0)
+            # calculate projection of depth on normal direction
+            depth_normal_projection = depth_diff * depth_normal_gt
+            depth_normal_loss = depth_normal_projection.abs().sum(2).mean()
             
+            depth_loss = depth_weight * depth_normal_loss
+                
+            loss += depth_loss
+            debug_loss["depth_loss"] = depth_loss.item()
             
             debug_tensor["plane_depth"] = depth
             debug_tensor["depth_metric"] = depth_metric_norm
+            
                 
 
         # multi-view loss
@@ -383,6 +400,10 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                     torch.save(debug_tensor[key], os.path.join(debug_tensor_path, key + ".pt"))
                 except KeyError:
                     pass
+            with open(os.path.join(args.debug_tensor, "loss.json"), "w") as file:
+                json.dump(debug_loss, file, indent=4, ensure_ascii=False)
+            
+            
             
         loss.backward()
         iter_end.record()
