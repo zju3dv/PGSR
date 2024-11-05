@@ -207,41 +207,37 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             debug_tensor["rendered_normal"] = normal
             debug_tensor["depth_normal"] = depth_normal
             
-        # Depth-loss
-        depth_l1_weight = get_expon_lr_func(opt.dn_l1_weight_init, opt.dn_l1_weight_final, max_steps=opt.iterations)
+        dn_l1_weight = opt.dn_weight
+        # dn_l1_weight = get_expon_lr_func(opt.dn_l1_weight_init, opt.dn_l1_weight_final, max_steps=opt.iterations)(iteration)
         
-        if iteration > opt.single_view_weight_from_iter and viewpoint_cam.depth_reliable and depth_l1_weight(iteration) > 0:
-            weight = depth_l1_weight(iteration)
-            normal_weight = weight / 2
-
-            depth_mask = render_pkg["plane_depth"] > 0
-
-            depth = normalize(render_pkg["plane_depth"])
+        if iteration > opt.single_view_weight_from_iter and viewpoint_cam.depth_reliable and dn_l1_weight > 0:
+            depth_weight = dn_l1_weight
+            normal_weight = dn_l1_weight / 2
+            
             depth_metric = viewpoint_cam.invdepthmap.cuda()
-            
-            depth_metric_norm = normalize(depth_metric)
-            debug_tensor["depth_metric"] = depth_metric_norm
-
-            depth = normalize(1 / (depth * depth_mask + 0.5))
-            mono_invdepth = normalize(1 / (depth_metric_norm + 0.5))
-
-            Ll1depth_pure = l1_loss(mono_invdepth, depth)
-            loss += weight * Ll1depth_pure
-            
+                        
             # LSimDepth = (1.0 - ssim(depth, mono_invdepth))
             # loss += weight * (0.5 * LSimDepth + 0.5 * Ll1depth_pure)
-            debug_tensor["plane_depth"] = depth
-            debug_tensor["invdepthmap"] = mono_invdepth
             
             # Normal-loss
             intrinsic_matrix, extrinsic_matrix = viewpoint_cam.get_calib_matrix_nerf(scale=1.0)
-            depth_normal_gt = normal_from_depth_image(depth_metric.squeeze(), intrinsic_matrix.cuda(), extrinsic_matrix.cuda())
-            # depth_normal_gt = mean_filter(depth_normal_gt[None], 9).squeeze()
-            depth_normal_gt = normalize(depth_normal_gt.permute(2, 0, 1))
-            depth_normal = normalize(render_pkg["depth_normal"])
+            depth_normal_gt = normal_from_depth_image(depth_metric.squeeze(), intrinsic_matrix.cuda(), extrinsic_matrix.cuda()).permute(2, 0, 1)            
+            depth_normal = render_pkg["depth_normal"]
+            
             normal_loss = (((depth_normal - depth_normal_gt)).abs().sum(0)).mean()
             loss += normal_weight * normal_loss
             debug_tensor["normal"] = depth_normal_gt
+            
+            # Depth-loss
+            depth = normalize(render_pkg["plane_depth"])
+            depth_metric_norm = normalize(depth_metric)
+            # loss += depth_weight * l1_loss(depth, depth_metric_norm) 
+            
+            
+            
+            debug_tensor["plane_depth"] = depth
+            debug_tensor["depth_metric"] = depth_metric_norm
+                
 
         # multi-view loss
         if iteration > opt.multi_view_weight_from_iter:

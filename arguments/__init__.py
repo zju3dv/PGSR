@@ -100,7 +100,7 @@ class OptimizationParams(ParamGroup):
         self.single_view_weight = 0.015
         self.single_view_weight_from_iter = 7000
         
-        # self.dn_weight = 0.1
+        self.dn_weight = 0.5
         self.dn_l1_weight_init = 2.0
         self.dn_l1_weight_final = 0.005
 
