@@ -62,7 +62,7 @@ def depth_pcd2normal(xyz, offset=None, gt_image=None):
         right_point = sampled_xyzs[:,:,2]
         left_point = sampled_xyzs[:,:,3]
     else:
-        cross_distance = 4
+        cross_distance = 2
         bottom_point = xyz[..., 2 * cross_distance:hd,   cross_distance:wd-cross_distance, :]
         top_point    = xyz[..., 0:hd-2 * cross_distance, cross_distance:wd-cross_distance, :]
         right_point  = xyz[..., cross_distance:hd-cross_distance, 2 * cross_distance:wd,   :]
