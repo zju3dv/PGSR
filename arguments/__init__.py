@@ -98,7 +98,7 @@ class OptimizationParams(ParamGroup):
         
         self.wo_image_weight = False
         self.single_view_weight = 0.015
-        self.single_view_weight_from_iter = 5000
+        self.single_view_weight_from_iter = 7000
         
         self.dn_weight = 0.5
         self.dn_l1_weight_init = 2.0

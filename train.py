@@ -213,7 +213,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         dn_l1_weight = get_expon_lr_func(opt.dn_l1_weight_init, opt.dn_l1_weight_final, max_steps=opt.iterations)(iteration)
         
         if iteration > opt.single_view_weight_from_iter and viewpoint_cam.depth_reliable and dn_l1_weight > 0:
-            depth_weight = dn_l1_weight
+            depth_weight = dn_l1_weight * 30
             normal_weight = dn_l1_weight / 2
             
             depth_metric = viewpoint_cam.invdepthmap.cuda()
@@ -224,31 +224,23 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             # Normal-loss
             intrinsic_matrix, extrinsic_matrix = viewpoint_cam.get_calib_matrix_nerf(scale=1.0)
             depth_normal_gt = normal_from_depth_image(depth_metric.squeeze(), intrinsic_matrix.cuda(), extrinsic_matrix.cuda()).permute(2, 0, 1)            
+            
+            rendered_normal = render_pkg["rendered_normal"]
+            normal_loss_rendered = (((rendered_normal - depth_normal_gt)).abs().sum(0)).mean()
+            
             depth_normal = render_pkg["depth_normal"]
+            normal_loss_depth = (((depth_normal - depth_normal_gt)).abs().sum(0)).mean()
             
-            normal_loss = (((depth_normal - depth_normal_gt)).abs().sum(0)).mean()
-            loss += normal_weight * normal_loss
-            
-            debug_tensor["normal"] = depth_normal_gt
-            debug_loss["normal_loss"] = normal_loss.item()
+            loss += normal_weight * (normal_loss_rendered + normal_loss_depth)
             
             # Depth-loss
+            debug_tensor["normal"] = depth_normal_gt
+            debug_loss["normal_loss"] = normal_loss.item()
             depth = normalize(render_pkg["plane_depth"])
             depth_metric_norm = normalize(depth_metric)
-            
-            # Depth-Normal-loss
-            depth_diff = (depth - depth_metric_norm).abs()
-            zeros = torch.zeros(1, depth_diff.size(1), depth_diff.size(2)).cuda()
-            depth_diff = torch.cat((zeros, zeros, depth_diff), dim=0)
-            depth_diff = depth_diff.permute(1, 2, 0)
-            depth_normal_gt = depth_normal_gt.permute(1, 2, 0)
-            # calculate projection of depth on normal direction
-            depth_normal_projection = depth_diff * depth_normal_gt
-            depth_normal_loss = depth_normal_projection.abs().sum(2).mean()
-            
-            depth_loss = depth_weight * depth_normal_loss
-                
+            depth_loss = depth_weight * l1_loss(depth, depth_metric_norm)
             loss += depth_loss
+                
             debug_loss["depth_loss"] = depth_loss.item()
             
             debug_tensor["plane_depth"] = depth
