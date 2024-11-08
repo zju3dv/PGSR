@@ -101,6 +101,23 @@ python scripts/run_tnt.py
 python scripts/run_mip360.py
 ```
 
+
+## Depth regularization
+
+
+Two preprocessing steps are required to enable depth regularization when training a scene:
+  To have better reconstructed scenes we use depth maps as priors during optimization with each input images. It works best on untextured parts ex: roads and can remove floaters. Several papers have used similar ideas to improve various aspects of 3DGS; (e.g. [DepthRegularizedGS](https://robot0321.github.io/DepthRegGS/index.html), [SparseGS](https://formycat.github.io/SparseGS-Real-Time-360-Sparse-View-Synthesis-using-Gaussian-Splatting/), [DNGaussian](https://fictionarry.github.io/DNGaussian/)). The depth regularization we integrated is that used in our [Hierarchical 3DGS](https://repo-sam.inria.fr/fungraph/hierarchical-3d-gaussians/) paper, but applied to the original 3DGS; for some scenes (e.g., the DeepBlending scenes) it improves quality significantly; for others it either makes a small difference or can even be worse. For details statistics please see here: [Stats for depth regularization](results.md).
+
+When training on a synthetic dataset, depth maps can be produced and they do not require further processing to be used in our method. For real world datasets please do the following: 
+1. Get depth maps for each input images, to this effect we suggest using [Depth anything v2](https://github.com/DepthAnything/Depth-Anything-V2?tab=readme-ov-file#usage).
+2. Generate a `depth_params.json` file using:
+    ```
+    python utils/make_depth_scale.py --base_dir <path to colmap> --depths_dir <path to generated depths>
+    ```
+
+A new parameter should be set when training if you want to use depth regularization `-d <path to depth maps>`.
+
+
 ## Custom Dataset
 The data folder should like this:
 ```shell
