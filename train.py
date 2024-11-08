@@ -214,7 +214,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         
         if iteration > opt.single_view_weight_from_iter and viewpoint_cam.depth_reliable and dn_l1_weight > 0:
             depth_weight = dn_l1_weight * 3
-            normal_weight = dn_l1_weight / 2
+            normal_weight = dn_l1_weight
             
             depth_metric = viewpoint_cam.invdepthmap.cuda()
                         

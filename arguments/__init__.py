@@ -102,7 +102,7 @@ class OptimizationParams(ParamGroup):
         
         self.dn_weight = 0.5
         self.dn_l1_weight_init = 2.0
-        self.dn_l1_weight_final = 0.005
+        self.dn_l1_weight_final = 0.5
 
         self.use_virtul_cam = False
         self.virtul_cam_prob = 0.5
