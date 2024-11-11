@@ -78,11 +78,11 @@ class PipelineParams(ParamGroup):
 
 class OptimizationParams(ParamGroup):
     def __init__(self, parser):
-        self.iterations = 15_000
+        self.iterations = 30_000
         self.position_lr_init = 0.00016
         self.position_lr_final = 0.0000016
         self.position_lr_delay_mult = 0.01
-        self.position_lr_max_steps = 30_000
+        self.position_lr_max_steps = 15_000
         self.feature_lr = 0.0025
         self.opacity_lr = 0.05
         self.scaling_lr = 0.005
@@ -101,8 +101,8 @@ class OptimizationParams(ParamGroup):
         self.single_view_weight_from_iter = 7000
         
         self.dn_weight = 0.5
-        self.dn_l1_weight_init = 2.0
-        self.dn_l1_weight_final = 0.5
+        self.dn_l1_weight_init = 0.2
+        self.dn_l1_weight_final = 0.05
 
         self.use_virtul_cam = False
         self.virtul_cam_prob = 0.5
@@ -122,9 +122,7 @@ class OptimizationParams(ParamGroup):
         self.max_all_points = 6000_000
         self.exposure_compensation = False
         self.random_background = False
-        
-        self.depth_l1_weight_init = 1.0
-        self.depth_l1_weight_final = 0.01
+    
         super().__init__(parser, "Optimization Parameters")
 
 def get_combined_args(parser : ArgumentParser):

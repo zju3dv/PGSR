@@ -227,16 +227,23 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             
             rendered_normal = render_pkg["rendered_normal"]
             normal_loss_rendered = (((rendered_normal - depth_normal_gt)).abs().sum(0)).mean()
+            # normal_loss_rendered = 1.0 - ssim(rendered_normal, depth_normal_gt)
             
             depth_normal = render_pkg["depth_normal"]
             normal_loss_depth = (((depth_normal - depth_normal_gt)).abs().sum(0)).mean()
+            # normal_loss_depth = 1.0 - ssim(depth_normal, depth_normal_gt)
+            
             
             loss += normal_weight * (normal_loss_rendered + normal_loss_depth)
+            debug_loss["normal_loss"] = normal_loss.item()
+            debug_tensor["normal"] = depth_normal_gt
             
             # Depth-loss
-            debug_tensor["normal"] = depth_normal_gt
-            debug_loss["normal_loss"] = normal_loss.item()
-            depth = normalize(render_pkg["plane_depth"])
+            depth = render_pkg["plane_depth"]
+            min_non_zero = depth[depth != 0].min()
+            depth[depth == 0] = min_non_zero
+            depth = normalize(depth)
+            
             depth_metric_norm = normalize(depth_metric)
             depth_loss = depth_weight * l1_loss(depth, depth_metric_norm)
             loss += depth_loss
