@@ -112,7 +112,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         gaussians.restore(model_params, opt)
         app_model.load_weights(scene.model_path)
 
-    bg_color = [1, 1, 0] if dataset.white_background else [1, 1, 0]
+    bg_color = [1, 0, 1] if dataset.white_background else [1, 0, 1]
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
 
     iter_start = torch.cuda.Event(enable_timing = True)

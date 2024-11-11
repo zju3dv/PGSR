@@ -38,7 +38,7 @@
             "request": "launch",
             "program": "train.py",
             "env": {
-                "CUDA_VISIBLE_DEVICES": "2" 
+                "CUDA_VISIBLE_DEVICES": "1" 
             },
             "args": [
                 "-s",
@@ -48,7 +48,7 @@
                 "-r",
                 "2",
                 "-d",
-                "~/workspace/PGSR/datasets/sampling/office_4/depth_tensor",
+                "~/workspace/gaussian_splatter/PGSR/datasets/sampling/office_4/depth_tensor",
                 // "--max_abs_split_points",
                 // "0",
                 "--opacity_cull_threshold",
@@ -56,7 +56,7 @@
                 "--debug_tensor",
                 "./debug_tensor_1",
                 "--dn_l1_weight_init",
-                "4.0"
+                "2.0"
             ],
             "console": "integratedTerminal"
         },
