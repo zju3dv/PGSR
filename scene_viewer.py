@@ -126,7 +126,7 @@ if __name__ == "__main__":
         scene.set_pose(camera_node, pose=camera_pose)
         
         # add light
-        light = pyrender.DirectionalLight(color=[1.0, 1.0, 1.0], intensity=3)
+        light = pyrender.DirectionalLight(color=[1.0, 1.0, 1.0], intensity=3.0)
         scene.add(light, pose=camera_pose)
         color, depth = r.render(scene)
         color = cv2.cvtColor(color, cv2.COLOR_RGB2BGR)

@@ -144,7 +144,7 @@ def render_sets(dataset : ModelParams, iteration : int, pipeline : PipelineParam
         # app_model.eval()
         # app_model.cuda()
 
-        bg_color = [1,1,1] if dataset.white_background else [0, 0, 0]
+        bg_color = [1,1,0] if dataset.white_background else [1, 1, 0]
         background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
         volume = o3d.pipelines.integration.ScalableTSDFVolume(
             voxel_length=voxel_size,
