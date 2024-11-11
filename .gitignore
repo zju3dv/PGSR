@@ -7,3 +7,5 @@ outputs
 */__pycache__
 *.pt
 test_img
+view_output
+debug_tensor*
