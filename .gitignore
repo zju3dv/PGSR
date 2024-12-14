@@ -1,7 +1,6 @@
 submodules/*/build
 submodules/*/.cache
 compile_commands.json
-.cache
 datasets
 outputs
 */__pycache__
@@ -9,3 +8,4 @@ outputs
 test_img
 view_output
 debug_tensor*
+.*
